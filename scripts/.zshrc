@@ -14,6 +14,10 @@ HISTSIZE=10000
 SAVEHIST=10000
 setopt INC_APPEND_HISTORY_TIME
 
+# Setup golang vars
+export GOPATH=$HOME/go
+export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+
 plugins=(git)
 
 source $ZSH/oh-my-zsh.sh

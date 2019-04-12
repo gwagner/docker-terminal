@@ -1,21 +1,27 @@
 FROM ubuntu:latest
 
+# Get base packages installed and create a user
 RUN apt-get update && \
-    apt-get install -y zsh golang-go curl git nano locales wget sudo docker apt-transport-https ca-certificates \
+    apt-get install -y zsh curl git nano locales wget sudo docker apt-transport-https ca-certificates \
         gnupg-agent software-properties-common && \
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - && \
     add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" && \
+    add-apt-repository ppa:longsleep/golang-backports && \
     apt-get update && \
-    sudo apt-get install -y docker-ce docker-ce-cli containerd.io && \
-    useradd -m -s /bin/zsh -u 1001 -N -G sudo gwagner && \
-    echo "gwagner ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/gwagner && \
+    sudo apt-get install -y golang-go docker-ce docker-ce-cli containerd.io && \
+    useradd -m -s /bin/zsh -u 1001 -N -G sudo docker && \
+    echo "docker ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/docker && \
     locale-gen en_US.UTF-8
 
+# Ensure we do everything else as that newly created user
 USER 1001
 
+# This timeout ensure that non-exited docker containers get cleaned up at some point
 ENV TMOUT=21600
 
+# Install oh-my-zsh and nano colors
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh | sed 's:env zsh -l::g' | sed 's:chsh -s .*$::g')" && \
-    git clone https://github.com/scopatz/nanorc.git /home/gwagner/.nano
+    git clone https://github.com/scopatz/nanorc.git /home/docker/.nano
 
+# Ensure we do a logon when we run this container
 ENTRYPOINT ["/bin/zsh", "-l"]

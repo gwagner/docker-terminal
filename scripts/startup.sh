@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DOCKER_HOME_DIR="/home/gwagner"
+DOCKER_HOME_DIR="/home/docker"
 
 CMD="/usr/local/bin/docker run -it --rm" 
 CMD+=" -w $DOCKER_HOME_DIR"
@@ -12,9 +12,14 @@ CMD+=" --mount type=bind,source=\"$HOME/terminal-scripts/.zlogout\",target=\"$DO
 CMD+=" --mount type=bind,source=\"$HOME/terminal-scripts/.zshrc\",target=\"$DOCKER_HOME_DIR/.zshrc\""
 CMD+=" --mount type=bind,source=\"$HOME/.zsh_history\",target=\"$DOCKER_HOME_DIR/.zsh_history\""
 
+if [ -d ~/go ]; then
+    CMD+=" --mount type=bind,source=\"$HOME/go\",target=\"$DOCKER_HOME_DIR/go\""
+fi
+
 if [ -d ~/.ssh ]; then
     CMD+=" --mount type=bind,source=\"$HOME/.ssh\",target=\"$DOCKER_HOME_DIR/.ssh\""
 fi
+
 
 CMD+=" terminal:latest"
 
