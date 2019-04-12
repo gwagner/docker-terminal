@@ -40,6 +40,7 @@ source $ZSH/oh-my-zsh.sh
 
 alias ll="ls -alF"
 alias docker="sudo docker"
+alias cdc="cd ~/share/Code/"
 
 # Display MotD
 if [[ -e $HOME/.motd ]]; then /bin/bash $HOME/.motd; fi
