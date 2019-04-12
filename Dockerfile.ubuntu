@@ -1,0 +1,21 @@
+FROM ubuntu:latest
+
+RUN apt-get update && \
+    apt-get install -y zsh golang-go curl git nano locales wget sudo docker apt-transport-https ca-certificates \
+        gnupg-agent software-properties-common && \
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - && \
+    add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" && \
+    apt-get update && \
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io && \
+    useradd -m -s /bin/zsh -u 1001 -N -G sudo gwagner && \
+    echo "gwagner ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/gwagner && \
+    locale-gen en_US.UTF-8
+
+USER 1001
+
+ENV TMOUT=21600
+
+RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh | sed 's:env zsh -l::g' | sed 's:chsh -s .*$::g')" && \
+    git clone https://github.com/scopatz/nanorc.git /home/gwagner/.nano
+
+ENTRYPOINT ["/bin/zsh", "-l"]
