@@ -23,5 +23,7 @@ plugins=(git)
 source $ZSH/oh-my-zsh.sh
 
 alias ll="ls -alF"
-#alias dkrka="docker kill $(docker ps -q)"
-#alias dkrrma="docker rm $(docker ps -a -q)"
+alias docker="sudo docker"
+
+# Display MotD
+if [[ -e $HOME/.motd ]]; then /bin/bash $HOME/.motd; fi

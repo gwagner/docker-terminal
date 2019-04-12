@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+. /etc/lsb-release
+
+LOAD=$(cat /proc/loadavg | cut -d' ' -f 2);
+
+CPU_COUNT=$(cat /proc/cpuinfo | grep -i "core id" | uniq | wc -l);
+THREAD_COUNT=$(cat /proc/cpuinfo | grep -i "core id" | wc -l);
+
+IPV4_ADDRESS=$(dig +short myip.opendns.com A @resolver1.opendns.com)
+
+LAST_LOGIN=$(last -1 | head -n 1 | awk '{ print $1,"at",$4,$5,$6,$7,"from",$3 }');
+
+echo
+base64 -d <<< "ICBfX19fICAgICAgICAgICAgIF8gICAgICAgICAgICAgICAgX19fX18gICAgICAgICAgICAgICAgICAgXyAgICAgICAgICAgICBfIAogfCAgXyBcICBfX18gICBfX198IHwgX19fX18gXyBfXyAgIHxfICAgX3xfXyBfIF9fIF8gX18gX19fIChfKV8gX18gICBfXyBffCB8CiB8IHwgfCB8LyBfIFwgLyBfX3wgfC8gLyBfIFwgJ19ffF9fX198IHwvIF8gXCAnX198ICdfIGAgXyBcfCB8ICdfIFwgLyBfYCB8IHwKIHwgfF98IHwgKF8pIHwgKF9ffCAgIDwgIF9fLyB8IHxfX19fX3wgfCAgX18vIHwgIHwgfCB8IHwgfCB8IHwgfCB8IHwgKF98IHwgfAogfF9fX18vIFxfX18vIFxfX198X3xcX1xfX198X3wgICAgICAgfF98XF9fX3xffCAgfF98IHxffCB8X3xffF98IHxffFxfXyxffF98CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA="
+echo
+echo Welcome to conatiner: $(hostname)
+echo Kernel: $(uname -r)
+echo Load: ${LOAD}
+echo External IP: ${IPV4_ADDRESS}
+echo
