@@ -21,7 +21,6 @@ if [ -d ~/.ssh ]; then
     CMD+=" --mount type=bind,source=\"$HOME/.ssh\",target=\"$DOCKER_HOME_DIR/.ssh\""
 fi
 
-
 CMD+=" terminal:latest"
 
 eval $CMD
