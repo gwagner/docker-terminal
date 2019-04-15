@@ -39,8 +39,10 @@ plugins=(git history sudo)
 source $ZSH/oh-my-zsh.sh
 
 alias ll="ls -alF"
+alias apt-get="sudo apt-get"
 alias docker="sudo docker"
 alias cdc="cd ~/share/Code/"
+
 
 # Display MotD
 if [[ -e $HOME/.motd ]]; then /bin/bash $HOME/.motd; fi
