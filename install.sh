@@ -29,3 +29,7 @@ if [ ! -e /usr/local/bin/dt ];
 then
     ln -s $DIR/bin/dt /usr/local/bin/dt
 fi
+
+echo "# Change the default shell for active user to /usr/local/bin/dt"
+echo
+chsh -s /usr/local/bin/dt $USER
