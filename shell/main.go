@@ -79,39 +79,3 @@ func run() error {
 
 	return nil
 }
-
-/* func run() error {
-	ctx = context.Background()
-	cli, err = client.NewEnvClient()
-	if err != nil {
-		return err
-	}
-
-	if err = container_create(ctx, cli); err != nil {
-		return err
-	}
-
-	if err = container_attach(ctx, cli); err != nil {
-		return err
-	}
-	defer containerConn.Close()
-
-	sigc := container_forward_all_signals(ctx, cli)
-	defer signal.StopCatch(sigc)
-
-	if err = container_io(); err != nil {
-		return err
-	}
-	defer terminal.Restore(fd, terminalState)
-
-	ok, err := cli.ContainerWait(ctx, containerId, container.WaitConditionRemoved)
-	select{
-	case e := <- err:
-		return e
-	case <- ok:
-	}
-
-	containerConn.Close()
-
-	return nil
-}*/
