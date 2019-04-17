@@ -40,6 +40,7 @@ source $ZSH/oh-my-zsh.sh
 
 alias ll="ls -alF"
 alias apt-get="sudo apt-get"
+alias bld="sudo -E ./build.sh"
 alias docker="sudo docker"
 alias cdc="cd ~/share/Code/"
 
