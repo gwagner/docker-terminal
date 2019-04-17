@@ -1,0 +1,13 @@
+# $HOST_HOME wll be computed as the $HOME variable.  it is $HOST_HOME so this can be
+# computed either inside or outside of the container
+
+# Required mounts will error terminal creation if the paths do not exist
+# A few magical mounts are created to ensure proper functionality
+# - /var/run/docker.sock:/var/run/docker.sock
+# - $HOST_HOME:/home/docker/share
+required_mounts:
+  - "$HOST_HOME/terminal-scripts/.zshrc:/home/docker/.zshrc"
+
+# Optional mounts will not error if the path does not exist
+optional_mounts:
+  - "$HOST_HOME/.ssh:/home/docker/.ssh"

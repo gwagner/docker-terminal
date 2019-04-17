@@ -3,11 +3,16 @@ package main
 import (
 	"fmt"
 	"github.com/blinkist/go-dockerpty"
-	docker "github.com/fsouza/go-dockerclient"
+	"github.com/fsouza/go-dockerclient"
+	"github.com/go-yaml/yaml"
+	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
-var OS_HOME = os.Getenv("HOME")
+var HOST_HOME = os.Getenv("HOME")
+var CONFIG DockerTerminalConfig
 
 func main() {
 	if err := run(); err != nil {
@@ -21,23 +26,20 @@ func run() error {
 	endpoint := "unix:///var/run/docker.sock"
 	cli, _ := docker.NewClient(endpoint)
 
-	binds := []string{
-		"/var/run/docker.sock:/var/run/docker.sock",
-		fmt.Sprintf("%s:/home/docker/share/", OS_HOME),
-		fmt.Sprintf("%s/terminal-scripts/.gitconfig:/home/docker/.gitconfig", OS_HOME),
-		fmt.Sprintf("%s/terminal-scripts/.motd:/home/docker/.motd", OS_HOME),
-		fmt.Sprintf("%s/terminal-scripts/.nanorc:/home/docker/.nanorc", OS_HOME),
-		fmt.Sprintf("%s/terminal-scripts/.zlogout:/home/docker/.zlogout", OS_HOME),
-		fmt.Sprintf("%s/terminal-scripts/.zshrc:/home/docker/.zshrc", OS_HOME),
-		fmt.Sprintf("%s/.zsh_history:/home/docker/.zsh_history", OS_HOME),
+	// Find the real path for this binary
+	path, _ := os.Executable()
+	path, _ = filepath.EvalSymlinks(path)
+	path = filepath.Dir(path)
+	hostProjectDir, _ := filepath.Abs(fmt.Sprintf("%s/../", path))
+	containerProjectDir := strings.Replace(hostProjectDir, HOST_HOME, "/home/docker/share", -1)
+
+	if err := parseConfig(); err != nil {
+		return err
 	}
 
-	if _, err := os.Stat(fmt.Sprintf("%s/.ssh", OS_HOME)); !os.IsNotExist(err) {
-		binds = append(binds, fmt.Sprintf("%s/.ssh:/home/docker/.ssh", OS_HOME))
-	}
-
-	if _, err := os.Stat(fmt.Sprintf("%s/go", OS_HOME)); !os.IsNotExist(err) {
-		binds = append(binds, fmt.Sprintf("%s/go:/home/docker/go", OS_HOME))
+	binds, err := getBinds()
+	if err != nil {
+		return err
 	}
 
 	// Create container
@@ -46,17 +48,23 @@ func run() error {
 			AttachStdin:  true,
 			AttachStdout: true,
 			AttachStderr: true,
-			Image:        "terminal:latest",
-			OpenStdin:    true,
-			StdinOnce:    true,
-			Tty:          true,
-			WorkingDir:   "/home/docker",
+			Env: []string{
+				fmt.Sprintf("HOST_HOME=%s", HOST_HOME),
+				fmt.Sprintf("HOST_PROJECT_DIR=%s", hostProjectDir),
+				fmt.Sprintf("CONTAINER_PROJECT_DIR=%s", containerProjectDir),
+				"IS_CONTAINER=true",
+			},
+			Image:      "terminal:latest",
+			OpenStdin:  true,
+			StdinOnce:  true,
+			Tty:        true,
+			WorkingDir: "/home/docker",
 		},
 		HostConfig: &docker.HostConfig{
-			VolumeDriver:    "bind",
-			PublishAllPorts: true,
 			AutoRemove:      true,
 			Binds:           binds,
+			PublishAllPorts: true,
+			VolumeDriver:    "bind",
 		},
 	})
 
@@ -78,4 +86,48 @@ func run() error {
 	}
 
 	return nil
+}
+
+func parseConfig() error {
+	defaultPath := true
+	path := fmt.Sprintf("%s/terminal-scripts/dt-config.yaml", HOST_HOME)
+	if p, ok := os.LookupEnv("CONFIG"); ok {
+		path = p
+		defaultPath = false
+	}
+
+	_, err := os.Stat(path)
+	if e, ok := err.(*os.PathError); ok {
+		if defaultPath {
+			return nil
+		}
+
+		return e
+	}
+
+	dat, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	if err := yaml.Unmarshal(dat, &CONFIG); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getBinds() ([]string, error) {
+	binds := []string{
+		"/var/run/docker.sock:/var/run/docker.sock",
+		fmt.Sprintf("%s:/home/docker/share/", HOST_HOME),
+	}
+
+	mounts, err := CONFIG.GetMounts()
+	if err != nil {
+		return []string{}, err
+	}
+	binds = append(binds, mounts...)
+
+	return binds, nil
 }
