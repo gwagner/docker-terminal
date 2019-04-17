@@ -1,2 +1,4 @@
 bin/*
 scripts/dt-config.yaml
+shell/vendor
+

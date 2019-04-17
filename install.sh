@@ -35,11 +35,12 @@ echo "# Ensuring ~/.zsh_history exists"
 touch $SHARED_HOME/.zsh_history
 
 # Only run outside of a container
-if [ -z $IS_CONTAINER ] && [ ! -e /usr/local/bin/dt ];
+if [ -z $IS_CONTAINER ] && [ ! -f /usr/local/bin/dt ];
 then
     echo
     echo "# Ensure dt is coppied to /usr/local/bin"
-    ln -s $HOST_PROJECT_DIR/bin/dt /usr/local/bin/dt
+    sudo -- sh -c "grep -qxF '/usr/local/bin/dt' /etc/shells || echo '/usr/local/bin/dt' >> /etc/shells"
+    sudo ln -s $DIR/bin/dt /usr/local/bin/dt
 fi
 
 # Only run outside of a container
