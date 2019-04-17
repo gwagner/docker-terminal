@@ -42,6 +42,9 @@ then
     ln -s $HOST_PROJECT_DIR/bin/dt /usr/local/bin/dt
 fi
 
-echo "# Change the default shell for active user to /usr/local/bin/dt"
-echo
-chsh -s /usr/local/bin/dt $USER
+# Only run outside of a container
+if [ -z $IS_CONTAINER ]; then
+    echo
+    echo "# Change the default shell for active user to /usr/local/bin/dt"
+    chsh -s /usr/local/bin/dt $USER
+fi
