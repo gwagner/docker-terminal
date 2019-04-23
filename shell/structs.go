@@ -1,60 +1,100 @@
 package main
 
-import (
-	"github.com/pkg/errors"
-	"os"
-	"strings"
-)
+import "sync"
 
 type DockerTerminalConfig struct {
-	RequiredMounts []string `yaml:"required_mounts"`
-	OptionalMounts []string `yaml:"optional_mounts"`
+	EnvVars        map[string]string `yaml:"env_vars"`
+	Image          string            `yaml:"image"`
+	RequiredMounts []string          `yaml:"required_mounts"`
+	OptionalMounts []string          `yaml:"optional_mounts"`
+	WorkingDir     string            `yaml:"working_dir"`
 }
 
-func (d *DockerTerminalConfig) GetMounts() ([]string, error) {
-	required, err := d.GetRequiredMounts()
-	if err != nil {
-		return []string{}, err
-	}
-
-	optional, err := d.GetOptionalMounts()
-	if err != nil {
-		return []string{}, err
-	}
-
-	return append(required, optional...), nil
+type FanoutControlChan struct {
+	sync.Mutex
+	error          chan error
+	errorListeners []chan error
+	quit           chan bool
+	quitListeners  []chan bool
 }
 
-func (d *DockerTerminalConfig) GetRequiredMounts() ([]string, error) {
-	var mounts []string
-	for _, v := range d.RequiredMounts {
-		v = strings.Replace(v, "$HOST_HOME", HOST_HOME, -1)
-		parts := strings.Split(v, ":")
+func NewFanoutControlChan() *FanoutControlChan {
+	f := &FanoutControlChan{
+		error: make(chan error),
+		quit:  make(chan bool),
+	}
 
-		_, err := os.Stat(parts[0])
-		if err != nil {
-			return []string{}, errors.Wrapf(err, "Invalid path specified: %s", v)
+	f.Start()
+
+	return f
+}
+
+func (f FanoutControlChan) Start() {
+	go func() {
+		select {
+		case q := <-f.quit:
+			for _, v := range f.quitListeners {
+				v <- q
+			}
+
+		case e := <-f.error:
+			for _, v := range f.errorListeners {
+				v <- e
+			}
 		}
 
-		mounts = append(mounts, v)
-	}
-
-	return mounts, nil
+	}()
 }
 
-func (d *DockerTerminalConfig) GetOptionalMounts() ([]string, error) {
-	var mounts []string
-	for _, v := range d.OptionalMounts {
-		v = strings.Replace(v, "$HOST_HOME", HOST_HOME, -1)
-		parts := strings.Split(v, ":")
+func (f FanoutControlChan) Stop() {
+	f.Lock()
+	defer f.Unlock()
 
-		_, err := os.Stat(parts[0])
-		if err != nil {
-			continue
-		}
-
-		mounts = append(mounts, v)
+	// Since we are stopping, nobody else can listen
+	for _, v := range f.errorListeners {
+		close(v)
 	}
+	for _, v := range f.quitListeners {
+		close(v)
+	}
+}
 
-	return mounts, nil
+func (f *FanoutControlChan) WaitForError() error {
+	l := make(chan error)
+	f.errorListeners = append(f.errorListeners, l)
+
+	return <-l
+}
+
+func (f *FanoutControlChan) WaitForErrorChan() chan error {
+	l := make(chan error)
+	f.errorListeners = append(f.errorListeners, l)
+
+	return l
+}
+
+func (f *FanoutControlChan) WaitForQuit() {
+	l := make(chan bool)
+	f.quitListeners = append(f.quitListeners, l)
+
+	<-l
+
+	return
+}
+
+func (f *FanoutControlChan) WaitForQuitChan() chan bool {
+	l := make(chan bool)
+	f.quitListeners = append(f.quitListeners, l)
+
+	return l
+}
+
+func (f FanoutControlChan) Error(err error) {
+	f.error <- err
+	f.Stop()
+}
+
+func (f FanoutControlChan) Quit() {
+	f.quit <- true
+	f.Stop()
 }

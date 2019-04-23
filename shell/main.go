@@ -2,87 +2,50 @@ package main
 
 import (
 	"fmt"
-	"github.com/blinkist/go-dockerpty"
-	"github.com/fsouza/go-dockerclient"
 	"github.com/go-yaml/yaml"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
-	"path/filepath"
-	"strings"
 )
 
-var HOST_HOME = os.Getenv("HOME")
 var CONFIG DockerTerminalConfig
+var logger logrus.FieldLogger
 
 func main() {
 	if err := run(); err != nil {
-		fmt.Println(err)
+		if logger != nil {
+			logger.WithError(err).Fatal("Fatal")
+		} else {
+			fmt.Println(err)
+		}
 		os.Exit(2)
 		return
 	}
 }
 
 func run() error {
-	endpoint := "unix:///var/run/docker.sock"
-	cli, _ := docker.NewClient(endpoint)
-
-	// Find the real path for this binary
-	path, _ := os.Executable()
-	path, _ = filepath.EvalSymlinks(path)
-	path = filepath.Dir(path)
-	hostProjectDir, _ := filepath.Abs(fmt.Sprintf("%s/../", path))
-	containerProjectDir := strings.Replace(hostProjectDir, HOST_HOME, "/home/docker/share", -1)
+	if err := setupLogging(); err != nil {
+		return errors.Wrapf(err, "Error setting up logging")
+	}
 
 	if err := parseConfig(); err != nil {
-		return err
+		return errors.Wrapf(err, "Error parsing configs")
 	}
 
-	binds, err := getBinds()
+	// Get a new container struct
+	ctr, err := NewContainer(logger, nil, CONFIG)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Error creating new container")
 	}
 
-	// Create container
-	ctr, err := cli.CreateContainer(docker.CreateContainerOptions{
-		Config: &docker.Config{
-			AttachStdin:  true,
-			AttachStdout: true,
-			AttachStderr: true,
-			Env: []string{
-				fmt.Sprintf("HOST_HOME=%s", HOST_HOME),
-				fmt.Sprintf("HOST_PROJECT_DIR=%s", hostProjectDir),
-				fmt.Sprintf("CONTAINER_PROJECT_DIR=%s", containerProjectDir),
-				"IS_CONTAINER=true",
-			},
-			Image:      "terminal:latest",
-			OpenStdin:  true,
-			StdinOnce:  true,
-			Tty:        true,
-			WorkingDir: "/home/docker",
-		},
-		HostConfig: &docker.HostConfig{
-			AutoRemove:      true,
-			Binds:           binds,
-			PublishAllPorts: true,
-			VolumeDriver:    "bind",
-		},
-	})
-
-	if err != nil {
-		return err
+	if err := ctr.Create(); err != nil {
+		return errors.Wrapf(err, "Error creating new container")
 	}
 
-	// Cleanup when done
-	defer func() {
-		cli.RemoveContainer(docker.RemoveContainerOptions{
-			ID:    ctr.ID,
-			Force: true,
-		})
-	}()
-
-	// Fire up the console
-	if err = dockerpty.Start(cli, ctr, &docker.HostConfig{}); err != nil {
-		return err
+	ctr.Start()
+	if err := ctr.Wait(); err != nil {
+		return errors.Wrapf(err, "Error running container %s", ctr.Container.ID)
 	}
 
 	return nil
@@ -90,7 +53,7 @@ func run() error {
 
 func parseConfig() error {
 	defaultPath := true
-	path := fmt.Sprintf("%s/terminal-scripts/dt-config.yaml", HOST_HOME)
+	path := fmt.Sprintf("%s/terminal-scripts/dt-config.yaml", os.Getenv("HOME"))
 	if p, ok := os.LookupEnv("CONFIG"); ok {
 		path = p
 		defaultPath = false
@@ -117,17 +80,16 @@ func parseConfig() error {
 	return nil
 }
 
-func getBinds() ([]string, error) {
-	binds := []string{
-		"/var/run/docker.sock:/var/run/docker.sock",
-		fmt.Sprintf("%s:/home/docker/share/", HOST_HOME),
-	}
-
-	mounts, err := CONFIG.GetMounts()
+func setupLogging() error {
+	f, err := os.OpenFile(fmt.Sprintf("%s/dt.log", os.Getenv("HOME")), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0755)
 	if err != nil {
-		return []string{}, err
+		return err
 	}
-	binds = append(binds, mounts...)
 
-	return binds, nil
+	logger = logrus.New()
+	logger.(*logrus.Logger).SetFormatter(&logrus.JSONFormatter{PrettyPrint: true})
+	logger.(*logrus.Logger).SetOutput(f)
+	logger.(*logrus.Logger).SetLevel(logrus.TraceLevel)
+
+	return nil
 }

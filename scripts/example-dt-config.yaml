@@ -1,3 +1,10 @@
+# Set key value pares of env vars.  This must be a key value pair of var=val
+env_vars:
+  something: 1
+
+# Use a different image.  By default, the build process will make a terminal:latest image.  This will allow a custom image to be put in its place
+image: terminal:latest
+
 # $HOST_HOME wll be computed as the $HOME variable.  it is $HOST_HOME so this can be
 # computed either inside or outside of the container
 
@@ -11,3 +18,6 @@ required_mounts:
 # Optional mounts will not error if the path does not exist
 optional_mounts:
   - "$HOST_HOME/.ssh:/home/docker/.ssh"
+
+# By default the working dir /home/docker.  This field lets you reset it to anything you want
+working_dir: /

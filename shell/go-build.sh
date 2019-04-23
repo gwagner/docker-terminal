@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
-echo
-echo "# Vendor Modules"
-go mod vendor
+if [ ! -d "vendor/" ]; then
+    echo
+    echo "# Vendor Modules"
+    go mod vendor
+fi
 
 echo
 echo "# Build Binary"
