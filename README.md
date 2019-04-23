@@ -25,7 +25,8 @@ Probably not, just a fun experiment!!
 # Future Plans
 
 1. Without needing to change your default shell, get back to your host shell through this PTY
-1. Set a config for what container to turn on.  Right now only the current Dockerfile.ubuntu is supported, but i should show Centos and Gentoo some love
+1. ~~Set a config for what container to turn on.  Right now only the current Dockerfile.ubuntu is supported, but i should show Centos and Gentoo some love~~
+    * This can be done through the `~/terminal-scripts/dt-config.yaml` file with a `image: [YOUR IMAGE NAME]` key value pair
 1. Container flavors.  The idea would be building pre-dockerfiled containers which fit a specific purpose to reduce size and increase efficiency
     * PHP Developer Container
     * Golang Developer Container

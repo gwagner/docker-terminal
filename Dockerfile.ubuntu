@@ -8,8 +8,8 @@ ENV TMOUT=21600
 
 # Get base packages installed and create a user
 RUN apt-get update && \
-    apt-get install -y htop apt-utils nmap dnsutils zsh curl git nano locales wget sudo apt-transport-https ca-certificates ant \
-        gnupg-agent software-properties-common && \
+    apt-get install -y unzip htop apt-utils nmap dnsutils zsh curl git nano locales wget sudo apt-transport-https \
+        ca-certificates ant gnupg-agent software-properties-common && \
     useradd -l -m -s /bin/zsh -u 1001 -N -G sudo docker && \
     echo "docker ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/docker && \
     locale-gen en_US.UTF-8
@@ -28,7 +28,7 @@ RUN add-apt-repository ppa:longsleep/golang-backports && \
 # Add PHP 7.3
 RUN add-apt-repository ppa:ondrej/php && \
     apt-get update && \
-    apt-get install -y --assume-yes php7.3-cli && \
+    apt-get install -y --assume-yes php7.3-cli php7.3-zip && \
     php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" && \
     php -r "if (hash_file('sha384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;" &&\
     php composer-setup.php --install-dir /bin --filename composer && \
